@@ -1,0 +1,60 @@
+{
+  "nodes": {
+    "flake-utils": {
+      "locked": {
+        "lastModified": 1678901627,
+        "narHash": "sha256-U02riOqrKKzwjsxc/400XnElV+UtPUQWpANPlyazjH0=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "93a2b84fc4b70d9e089d029deacc3583435c2ed6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "go-sungrow-repo": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1672887327,
+        "narHash": "sha256-1Bv1dE/ttFXWRtdF6xmmXGzfHv0e1QbHM5i9t2epBu8=",
+        "owner": "MickMake",
+        "repo": "GoSungrow",
+        "rev": "d25c98b89d6d33c34658a35b4c7dc1fc2c1b4b40",
+        "type": "github"
+      },
+      "original": {
+        "owner": "MickMake",
+        "repo": "GoSungrow",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1679999353,
+        "narHash": "sha256-Gv9FpNoQqVtRWaNHJF7s6CguT5AT/HZkAvHJQVpLgw8=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "98f3b08f58ff125ef02d55cd52a83f44f245f2ea",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "go-sungrow-repo": "go-sungrow-repo",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
