@@ -45,6 +45,14 @@
             leaflet
             hexbin
 
+            # Shiny
+            shiny
+            shinystan
+            shinythemes
+            shinytoastr
+            shinypanels
+            shinybrms
+
             # Linear algebra
             RSpectra
             EigenR

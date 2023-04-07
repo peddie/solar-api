@@ -116,3 +116,121 @@ fetch_point <- function(dtype, point_id, start_date, end_date) {
                .progress = TRUE) %>%
         purrr::list_rbind()
 }
+
+label_points <- function(data, all_points) {
+    data %>%
+        dplyr::left_join(
+                   y = all_points %>%
+                       select(c(point_id_p, device_type, point_name)),
+                   by = dplyr::join_by(point_id == "point_id_p"))
+}
+
+pivot_for_plotting <- function(named) {
+    named %>%
+            dplyr::select(-c(key, point_id, device_type)) %>%
+    tidyr::pivot_wider(
+               names_from = point_name,
+               values_from = value)
+
+}
+
+compute_net_load <- function(tabular) {
+    tabular %>%
+        dplyr::mutate(
+                   `Net Load` = `Meter Active Power` + `Total Active Power`)
+}
+
+plot_power <- function(tabular) {
+    color_mappings <-
+        c("Meter Usage" = "red",
+          "Generation" = "green",
+          "Load" = "blue")
+    days <-
+        tabular %>%
+        dplyr::pull(timestamp) %>%
+        lubridate::round_date(unit = "day") %>%
+        unique()
+    tabular %>%
+        ggplot(aes(x = timestamp)) +
+        geom_ribbon(
+            aes(ymin = pmin(0, `Meter Active Power`),
+                ymax = pmax(0, `Meter Active Power`),
+                fill = "Meter Usage"),
+            alpha = 0.3) +
+        geom_area(
+            aes(y = `Total Active Power`,
+                fill = "Generation"),
+            alpha = 0.3) +
+        geom_area(
+            aes(y = `Net Load`,
+                fill = "Load"),
+            alpha = 0.3) +
+        scale_color_manual(values = color_mappings) +
+        scale_fill_manual(values = color_mappings) +
+        scale_x_datetime(breaks = days) +
+        labs(
+            x = "Date",
+            y = "Power [W]",
+            fill = "Energy Flow",
+            title = "Household power consumption",
+            subtitle = "Negative power indicates net power export")
+}
+
+plot_power_compared_to_yesterday <- function(tabular) {
+    today <-
+        lubridate::floor_date(
+                       lubridate::now(),
+                       unit = "day")
+    today_data <-
+        tabular %>%
+        dplyr::filter(lubridate::date(timestamp) == today)
+    old_data <-
+        tabular %>%
+        dplyr::filter(lubridate::date(timestamp) != today) %>%
+        dplyr::mutate(days_offset =
+                          lubridate::date(today) - lubridate::date(timestamp),
+                      timestamp_today = timestamp + days_offset)
+    days_offsets <-
+        old_data %>%
+        dplyr::pull(days_offset) %>%
+        unique()
+    color_mappings <-
+        c("Meter Usage" = "red",
+          "Generation" = "green",
+          "Load" = "blue",
+          "Previous generation" = "black")
+    total_days_offsets <- sum(days_offsets)
+    max_days_offsets <- max(days_offsets)
+    today_data %>%
+        ggplot(aes(x = timestamp)) +
+        geom_ribbon(
+            aes(ymin = pmin(0, `Meter Active Power`),
+                ymax = pmax(0, `Meter Active Power`),
+                fill = "Meter Usage"),
+            alpha = 0.3) +
+        geom_area(
+            aes(y = `Total Active Power`,
+                fill = "Generation"),
+            alpha = 0.3) +
+        geom_area(
+            aes(y = `Net Load`,
+                fill = "Load"),
+            alpha = 0.3) +
+        geom_smooth(
+            data = old_data,
+            aes(x = timestamp_today,
+                y = `Total Active Power`,
+                weight = (max_days_offsets - as.numeric(days_offset)) / total_days_offset,
+                colour = "Previous generation")) +
+        scale_color_manual(values = color_mappings) +
+        scale_fill_manual(values = color_mappings) +
+        scale_x_datetime(breaks = scales::date_breaks("3 hours")) +
+        labs(
+            x = "Date",
+            y = "Power [W]",
+            fill = "Energy Flow",
+            colour = paste("Past", max_days_offsets, "Days"),
+            title = "Household power consumption",
+            subtitle = "Negative power indicates net power export")
+}
+

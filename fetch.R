@@ -17,54 +17,10 @@ all_data <- fetch_point(
     lubridate::now() - lubridate::ddays(13),
     lubridate::now())
 
-named <-
-    all_data %>%
-    dplyr::left_join(
-               y = all_points %>%
-                   select(c(point_id_p, device_type, point_name)),
-               by = join_by(point_id == "point_id_p"))
+named <- label_points(all_data, all_points)
 tabular <-
-    named %>%
-    dplyr::select(-c(key, point_id, device_type)) %>%
-    tidyr::pivot_wider(
-               names_from = point_name,
-               values_from = value) %>%
-    dplyr::mutate(`Net Load` = `Meter Active Power` + `Total Active Power`)
-days <-
-    tabular %>%
-    dplyr::pull(timestamp) %>%
-    lubridate::round_date(unit = "day") %>%
-    unique()
-
-color_mappings <-
-    c("Meter Usage" = "red",
-      "Generation" = "green",
-      "Load" = "blue")
-tabular %>%
-    # dplyr::filter(timestamp > lubridate::now() - lubridate::ddays(1)) %>%
-    ggplot(aes(x = timestamp)) +
-    geom_ribbon(
-        aes(ymin = pmin(0, `Meter Active Power`),
-            ymax = pmax(0, `Meter Active Power`),
-            fill = "Meter Usage"),
-        alpha = 0.3) +
-    geom_area(
-        aes(y = `Total Active Power`,
-            fill = "Generation"),
-        alpha = 0.3) +
-    geom_area(
-        aes(y = `Net Load`,
-            fill = "Load"),
-        alpha = 0.3) +
-    scale_color_manual(values = color_mappings) +
-    scale_fill_manual(values = color_mappings) +
-    scale_x_datetime(breaks = days) +
-    labs(
-        x = "Date",
-        y = "Power [W]",
-        fill = "Energy Flow",
-        title = "Household power consumption",
-        subtitle = "Negative power indicates net power export")
+    named %>% pivot_for_plotting %>% compute_net_load
+tabular %>% plot_power()
 
 ### Cost calculations
 costed <-
