@@ -221,10 +221,19 @@ plot_power_compared_to_yesterday <- function(tabular) {
                      ggplot2::aes(x = timestamp_today,
                                   y = `Total Active Power`,
                                   weight = (max_days_offsets - as.numeric(days_offset)) / total_days_offsets,
-                                  colour = "Previous generation")) +
+                                  colour = "Previous generation"),
+                     alpha = 0.4) +
         ggplot2::scale_color_manual(values = color_mappings) +
         ggplot2::scale_fill_manual(values = color_mappings) +
-        ggplot2::scale_x_datetime(breaks = scales::date_breaks("3 hours")) +
+        ggplot2::scale_x_datetime(breaks = scales::date_breaks("6 hours")) +
+        ggplot2::labs(
+                     x = "Date",
+                     y = "Power [W]",
+                     fill = "Energy Flow",
+                     colour = paste("Past", max_days_offsets, "Days"),
+                     title = "Household power consumption",
+                     subtitle = "Negative power indicates net power export")
+}
         ggplot2::labs(
                      x = "Date",
                      y = "Power [W]",

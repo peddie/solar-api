@@ -1,5 +1,6 @@
 library(shiny)
 library(magrittr)
+library(plotly)
 
 source("api.R", local = TRUE)
 source("constants.R", local = TRUE)
@@ -21,7 +22,7 @@ ui <- fluidPage(
         ),
 
         mainPanel(
-            plotOutput("plot")
+            plotlyOutput("plot")
         )
     )
 )
@@ -41,7 +42,7 @@ server <- function(input, output) {
             to_fetch$device_type,
             to_fetch$point_id,
             lubridate::floor_date(
-                           lubridate::now() - lubridate::ddays(2),
+                           lubridate::now() - lubridate::ddays(3),
                            unit="day"),
             lubridate::now()) %>%
             label_points(all_points) %>%
@@ -68,8 +69,8 @@ server <- function(input, output) {
             dplyr::slice(latest_data(), which.max(timestamp))$`Meter Active Power`
         paste("Meter import: ", latest_meter, "W")
     })
-    output$plot <- renderPlot({
-        latest_data() %>% plot_power_compared_to_yesterday()
+    output$plot <- renderPlotly({
+        latest_data() %>% plot_power_compared_to_yesterday() %>% ggplotly()
     })
 }
 
