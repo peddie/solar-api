@@ -39,7 +39,7 @@
       },
       "locked": {
         "lastModified": 1680231597,
-        "narHash": "sha256-G6+N1WgiwYcvvXIfzPtaKKTri9cOSZO3KU+NRX151D8=",
+        "narHash": "sha256-a1meAoezc4qxwoq8W0WAstc/1xFTTdDz+rKrr6x933w=",
         "path": "/home/peddie/programming/solar-api/go-sungrow",
         "type": "path"
       },

@@ -1,7 +1,12 @@
 library(shiny)
+library(magrittr)
 
 source("api.R", local = TRUE)
 source("constants.R", local = TRUE)
+
+options(browser = "x-www-browser")
+options(shiny.host = "192.168.1.157")
+options(shiny.port = 22222)
 
 ui <- fluidPage(
     titlePanel("House dashboard"),
@@ -21,7 +26,7 @@ ui <- fluidPage(
     )
 )
 
-to_fetch <- tribble(
+to_fetch <- tibble::tribble(
     ~device_type, ~point_id,
     7, 8018,
     1, 24
@@ -45,22 +50,22 @@ server <- function(input, output) {
     })
     output$current_time <- renderText({
         latest_time <-
-            slice(latest_data(), which.max(timestamp))$`timestamp`
+            dplyr::slice(latest_data(), which.max(timestamp))$`timestamp`
         paste("Updated at: ", latest_time)
     })
     output$current_gen <- renderText({
         latest_gen <-
-            slice(latest_data(), which.max(timestamp))$`Total Active Power`
+            dplyr::slice(latest_data(), which.max(timestamp))$`Total Active Power`
         paste("Generation: ", latest_gen, "W")
     })
     output$current_load <- renderText({
         latest_load <-
-            slice(latest_data(), which.max(timestamp))$`Net Load`
+            dplyr::slice(latest_data(), which.max(timestamp))$`Net Load`
         paste("Load: ", latest_load, "W")
     })
     output$current_meter <- renderText({
         latest_meter <-
-            slice(latest_data(), which.max(timestamp))$`Meter Active Power`
+            dplyr::slice(latest_data(), which.max(timestamp))$`Meter Active Power`
         paste("Meter import: ", latest_meter, "W")
     })
     output$plot <- renderPlot({

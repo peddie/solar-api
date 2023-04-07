@@ -121,16 +121,16 @@ label_points <- function(data, all_points) {
     data %>%
         dplyr::left_join(
                    y = all_points %>%
-                       select(c(point_id_p, device_type, point_name)),
+                       dplyr::select(c(point_id_p, device_type, point_name)),
                    by = dplyr::join_by(point_id == "point_id_p"))
 }
 
 pivot_for_plotting <- function(named) {
     named %>%
-            dplyr::select(-c(key, point_id, device_type)) %>%
-    tidyr::pivot_wider(
-               names_from = point_name,
-               values_from = value)
+        dplyr::select(-c(key, point_id, device_type)) %>%
+        tidyr::pivot_wider(
+                   names_from = point_name,
+                   values_from = value)
 
 }
 
@@ -151,20 +151,20 @@ plot_power <- function(tabular) {
         lubridate::round_date(unit = "day") %>%
         unique()
     tabular %>%
-        ggplot(aes(x = timestamp)) +
-        geom_ribbon(
-            aes(ymin = pmin(0, `Meter Active Power`),
-                ymax = pmax(0, `Meter Active Power`),
-                fill = "Meter Usage"),
-            alpha = 0.3) +
-        geom_area(
-            aes(y = `Total Active Power`,
-                fill = "Generation"),
-            alpha = 0.3) +
-        geom_area(
-            aes(y = `Net Load`,
-                fill = "Load"),
-            alpha = 0.3) +
+        ggplot2::ggplot(aes(x = timestamp)) +
+        ggplot2::geom_ribbon(
+                     ggplot2::aes(ymin = pmin(0, `Meter Active Power`),
+                                  ymax = pmax(0, `Meter Active Power`),
+                                  fill = "Meter Usage"),
+                     alpha = 0.3) +
+        ggplot2::geom_area(
+                     ggplot2::aes(y = `Total Active Power`,
+                                  fill = "Generation"),
+                     alpha = 0.3) +
+        ggplot2::geom_area(
+                     ggplot2::aes(y = `Net Load`,
+                                  fill = "Load"),
+                     alpha = 0.3) +
         scale_color_manual(values = color_mappings) +
         scale_fill_manual(values = color_mappings) +
         scale_x_datetime(breaks = days) +
@@ -202,35 +202,35 @@ plot_power_compared_to_yesterday <- function(tabular) {
     total_days_offsets <- sum(days_offsets)
     max_days_offsets <- max(days_offsets)
     today_data %>%
-        ggplot(aes(x = timestamp)) +
-        geom_ribbon(
-            aes(ymin = pmin(0, `Meter Active Power`),
-                ymax = pmax(0, `Meter Active Power`),
-                fill = "Meter Usage"),
-            alpha = 0.3) +
-        geom_area(
-            aes(y = `Total Active Power`,
-                fill = "Generation"),
-            alpha = 0.3) +
-        geom_area(
-            aes(y = `Net Load`,
-                fill = "Load"),
-            alpha = 0.3) +
-        geom_smooth(
-            data = old_data,
-            aes(x = timestamp_today,
-                y = `Total Active Power`,
-                weight = (max_days_offsets - as.numeric(days_offset)) / total_days_offset,
-                colour = "Previous generation")) +
-        scale_color_manual(values = color_mappings) +
-        scale_fill_manual(values = color_mappings) +
-        scale_x_datetime(breaks = scales::date_breaks("3 hours")) +
-        labs(
-            x = "Date",
-            y = "Power [W]",
-            fill = "Energy Flow",
-            colour = paste("Past", max_days_offsets, "Days"),
-            title = "Household power consumption",
-            subtitle = "Negative power indicates net power export")
+        ggplot2::ggplot(ggplot2::aes(x = timestamp)) +
+        ggplot2::geom_ribbon(
+                     ggplot2::aes(ymin = pmin(0, `Meter Active Power`),
+                                  ymax = pmax(0, `Meter Active Power`),
+                                  fill = "Meter Usage"),
+                     alpha = 0.3) +
+        ggplot2::geom_area(
+                     ggplot2::aes(y = `Total Active Power`,
+                                  fill = "Generation"),
+                     alpha = 0.3) +
+        ggplot2::geom_area(
+                     ggplot2::aes(y = `Net Load`,
+                                  fill = "Load"),
+                     alpha = 0.3) +
+        ggplot2::geom_smooth(
+                     data = old_data,
+                     ggplot2::aes(x = timestamp_today,
+                                  y = `Total Active Power`,
+                                  weight = (max_days_offsets - as.numeric(days_offset)) / total_days_offsets,
+                                  colour = "Previous generation")) +
+        ggplot2::scale_color_manual(values = color_mappings) +
+        ggplot2::scale_fill_manual(values = color_mappings) +
+        ggplot2::scale_x_datetime(breaks = scales::date_breaks("3 hours")) +
+        ggplot2::labs(
+                     x = "Date",
+                     y = "Power [W]",
+                     fill = "Energy Flow",
+                     colour = paste("Past", max_days_offsets, "Days"),
+                     title = "Household power consumption",
+                     subtitle = "Negative power indicates net power export")
 }
 
