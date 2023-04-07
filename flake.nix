@@ -51,7 +51,8 @@
             shinythemes
             shinytoastr
             shinypanels
-            shinybrms
+            shinybusy
+            plotly
 
             # Linear algebra
             RSpectra
