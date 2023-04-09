@@ -79,6 +79,8 @@ server <- function(input, output) {
         direction <- if (latest_meter < 0) "exporting" else "buying"
         paste("Meter import: ", latest_meter, "W", paste0("(", direction, " power)"))
     })
+
+    ## https://community.rstudio.com/t/plotly-have-both-geom-line-and-geom-smooth-in-the-legend-and-remove-the-trailing-text-1-at-the-end-of-the-legend-keys/105030
     output$plot <- renderPlotly({
         latest_data() %>% plot_power_compared_to_yesterday() %>% ggplotly()
     })
