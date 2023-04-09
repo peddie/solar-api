@@ -4,10 +4,12 @@ library(plotly)
 
 source("api.R", local = TRUE)
 source("constants.R", local = TRUE)
+source("bom.R", local = TRUE)
 
 options(browser = "x-www-browser")
 options(shiny.host = "192.168.1.157")
 options(shiny.port = 22222)
+set_user_agent()
 
 ui <- fluidPage(
     titlePanel("House dashboard"),
@@ -22,7 +24,9 @@ ui <- fluidPage(
         ),
 
         mainPanel(
-            plotlyOutput("plot")
+            plotlyOutput("plot"),
+            plotlyOutput("past_power_plot"),
+            plotlyOutput("forecast_plot")
         )
     )
 )
@@ -42,12 +46,17 @@ server <- function(input, output) {
             to_fetch$device_type,
             to_fetch$point_id,
             lubridate::floor_date(
-                           lubridate::now() - lubridate::ddays(3),
+                           lubridate::now() - lubridate::ddays(7),
                            unit="day"),
             lubridate::now()) %>%
             label_points(all_points) %>%
             pivot_for_plotting() %>%
             compute_net_load()
+    })
+    latest_forecast <- reactive({
+        shiny::invalidateLater(millis = 60 * 60 * 1000)
+        bom_web_detailed_forecast(place_name = "kenmore") %>%
+            tidy_forecast_tables()
     })
     output$current_time <- renderText({
         latest_time <-
@@ -67,10 +76,17 @@ server <- function(input, output) {
     output$current_meter <- renderText({
         latest_meter <-
             dplyr::slice(latest_data(), which.max(timestamp))$`Meter Active Power`
-        paste("Meter import: ", latest_meter, "W")
+        direction <- if (latest_meter < 0) "exporting" else "buying"
+        paste("Meter import: ", latest_meter, "W", paste0("(", direction, " power)"))
     })
     output$plot <- renderPlotly({
         latest_data() %>% plot_power_compared_to_yesterday() %>% ggplotly()
+    })
+    output$past_power_plot <- renderPlotly({
+        latest_data() %>% plot_past_power() %>% ggplotly()
+    })
+    output$forecast_plot <- renderPlotly({
+        latest_forecast() %>% plot_rain_forecast() %>% ggplotly()
     })
 }
 

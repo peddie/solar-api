@@ -4,6 +4,7 @@ library(tidyverse)
 source("api.R")
 source("constants.R")
 source("cost.R")
+source("bom.R")
 
 future::plan(future::multicore, workers = 2)
 
@@ -59,3 +60,10 @@ demand_cost <-
     sum(peak$max_half_hour, na.rm = TRUE) +
     n_days * demand_daily_cost
 daily_difference <- (fixed_cost - demand_cost) / n_days
+
+### BOM fetching
+
+set_user_agent()
+forecast <-
+    bom_web_detailed_forecast() %>%
+    tidy_forecast_tables()

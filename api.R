@@ -234,12 +234,106 @@ plot_power_compared_to_yesterday <- function(tabular) {
                      title = "Household power consumption",
                      subtitle = "Negative power indicates net power export")
 }
+
+
+plot_power_compared_to_yesterday <- function(tabular) {
+    today <-
+        lubridate::floor_date(
+                       lubridate::now(),
+                       unit = "day")
+    today_data <-
+        tabular %>%
+        dplyr::filter(lubridate::date(timestamp) == today)
+    old_data <-
+        tabular %>%
+        dplyr::filter(lubridate::date(timestamp) != today) %>%
+        dplyr::mutate(days_offset =
+                          lubridate::date(today) - lubridate::date(timestamp),
+                      timestamp_today = timestamp + days_offset)
+    days_offsets <-
+        old_data %>%
+        dplyr::pull(days_offset) %>%
+        unique()
+    color_mappings <-
+        c("Meter Usage" = "red",
+          "Generation" = "green",
+          "Load" = "blue",
+          "Previous generation" = "black")
+    total_days_offsets <- sum(days_offsets)
+    max_days_offsets <- max(days_offsets)
+    today_data %>%
+        ggplot2::ggplot(ggplot2::aes(x = timestamp)) +
+        ggplot2::geom_ribbon(
+                     ggplot2::aes(ymin = pmin(0, `Meter Active Power`),
+                                  ymax = pmax(0, `Meter Active Power`),
+                                  fill = "Meter Usage"),
+                     alpha = 0.3) +
+        ggplot2::geom_area(
+                     ggplot2::aes(y = `Total Active Power`,
+                                  fill = "Generation"),
+                     alpha = 0.3) +
+        ggplot2::geom_area(
+                     ggplot2::aes(y = `Net Load`,
+                                  fill = "Load"),
+                     alpha = 0.3) +
+        ggplot2::geom_area(
+                     data = old_data %>% dplyr::mutate(date = lubridate::date(timestamp)),
+                     ggplot2::aes(x = timestamp_today,
+                                  y = `Total Active Power`,
+                                  group = date),
+                     position = "identity",
+                     alpha = 0.5 / max_days_offsets) +
+        ggplot2::scale_color_manual(values = color_mappings) +
+        ggplot2::scale_fill_manual(values = color_mappings) +
+        ggplot2::scale_x_datetime(breaks = scales::date_breaks("6 hours")) +
         ggplot2::labs(
                      x = "Date",
                      y = "Power [W]",
                      fill = "Energy Flow",
                      colour = paste("Past", max_days_offsets, "Days"),
+                     group = "Past generation",
                      title = "Household power consumption",
-                     subtitle = "Negative power indicates net power export")
+                     subtitle = paste0(
+                         "Negative power indicates net power export",
+                         "\n",
+                         "Shadows indicate past ", max_days_offsets, " days of generation"))
 }
 
+plot_past_power <- function(tabular) {
+    today <-
+        lubridate::floor_date(
+                       lubridate::now(),
+                       unit = "day")
+    days <- 
+        tabular %>%
+        dplyr::pull(timestamp) %>%
+        lubridate::date() %>%
+        Filter(function(d) d != lubridate::date(today), .) %>%
+        unique()
+    n_days <- length(days)
+    tabular %>%
+        dplyr::filter(lubridate::date(timestamp) != lubridate::date(today)) %>%
+        dplyr::mutate(
+                   time = hms::as_hms(timestamp),
+                   date = lubridate::date(timestamp)) %>%
+        dplyr::group_by(date) %>%
+        ggplot(aes(x = time)) +
+        geom_area(
+            aes(y = `Total Active Power`,
+                fill = date,
+                group = date),
+            alpha = 0.2,
+            position = "identity") +
+        theme(aspect.ratio = 0.2) +
+        coord_cartesian(
+            xlim = c(
+                lubridate::hms("05:00:00"),
+                lubridate::hms("19:00:00"))) +
+        scale_fill_viridis_c(trans = "date",
+                             breaks = days) +
+        labs(
+            x = "Time of day",
+            y = "Power [W]",
+            fill = "Date",
+            title = paste("Past", n_days, "days of power generation"))
+}
