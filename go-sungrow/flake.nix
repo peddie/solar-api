@@ -41,6 +41,7 @@
         packages.default = go-sungrow;
         apps.go-sungrow = app;
         apps.default = app;
-        devShell = pkgs.mkShell { buildInputs = [ packages.go-sungrow ]; };
+        devShells.go-sungrow = pkgs.mkShell { buildInputs = [ packages.${system}.go-sungrow ]; };
+        devShells.default = devShells.${system}.go-sungrow;
       });
 }
