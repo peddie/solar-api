@@ -137,3 +137,54 @@ plot_rain_forecast <- function(forecast) {
                      fill = "Probability of rain",
                      title = "BOM rain forecast")
 }
+
+plot_temperatures <- function(forecast) {
+    temps <- c(forecast$air_temp_C, forecast$feels_like_temp_C)
+    max_temp <- round(max(temps))
+    min_temp <- round(min(temps))
+
+    calc_extrema <- function(varname) {
+        forecast %>%
+            dplyr::group_by(lubridate::date(timestamp)) %>%
+            dplyr::summarise(
+                       min_index = which.min({{ varname }}),
+                       min_time = timestamp[min_index],
+                       min = min({{ varname }}),
+                       max_index = which.max({{ varname }}),
+                       max_time = timestamp[max_index],
+                       max = max({{ varname }}))
+    }
+
+    feels_like_extrema <- calc_extrema(feels_like_temp_C)
+    feels_like_colour <- "'Feels like'"
+    forecast %>%
+        ggplot2::ggplot(ggplot2::aes(x = timestamp)) +
+        ggplot2::geom_line(ggplot2::aes(y = air_temp_C,
+                                        color = "True"),
+                           linewidth = 2) +
+        ggplot2::geom_line(ggplot2::aes(y = feels_like_temp_C,
+                                        color = feels_like_colour),
+                           linewidth = 2) +
+        ggplot2::geom_text(data = feels_like_extrema,
+                           ggplot2::aes(x = max_time,
+                                        y = max,
+                                        label = max),
+                           size = 6,
+                           vjust = -2## ,
+                           ## color = feels_like_colour
+                           ) +
+        ggplot2::geom_text(data = feels_like_extrema,
+                            ggplot2::aes(x = min_time,
+                                         y = min,
+                                         label = min),
+                           size = 6,
+                           vjust = 2##,
+                           ## color = feels_like_colour
+                           ) +
+        ggplot2::scale_y_continuous(breaks = seq(min_temp, max_temp, by = 2)) +
+        ggplot2::labs(
+                     x = "Time",
+                     y = "Temperature [C]",
+                     color = "Type",
+                     title = "BOM temperature forecast")
+}

@@ -26,7 +26,8 @@ ui <- fluidPage(
         mainPanel(
             plotlyOutput("plot"),
             plotlyOutput("past_power_plot"),
-            plotlyOutput("forecast_plot")
+            plotlyOutput("forecast_plot"),
+            plotlyOutput("temperature_plot")
         )
     )
 )
@@ -38,6 +39,15 @@ to_fetch <- tibble::tribble(
 )
 
 all_points <- fetch_devices() %>% fetch_all_points()
+
+as_plotly <- function(ggobject) {
+    ggobject %>%
+        ggplotly() %>%
+        plotly::layout(
+                    yaxis = list(
+                        fixedrange = TRUE,
+                        displaylogo = FALSE))
+}
 
 server <- function(input, output) {
     latest_data <- reactive({
@@ -82,13 +92,24 @@ server <- function(input, output) {
 
     ## https://community.rstudio.com/t/plotly-have-both-geom-line-and-geom-smooth-in-the-legend-and-remove-the-trailing-text-1-at-the-end-of-the-legend-keys/105030
     output$plot <- renderPlotly({
-        latest_data() %>% plot_power_compared_to_yesterday() %>% ggplotly()
+        latest_data() %>%
+            plot_power_compared_to_yesterday() %>%
+            as_plotly()
     })
     output$past_power_plot <- renderPlotly({
-        latest_data() %>% plot_past_power() %>% ggplotly()
+        latest_data() %>%
+            plot_past_power() %>%
+            as_plotly()
     })
     output$forecast_plot <- renderPlotly({
-        latest_forecast() %>% plot_rain_forecast() %>% ggplotly()
+        latest_forecast() %>%
+            plot_rain_forecast() %>%
+            as_plotly()
+    })
+    output$temperature_plot <- renderPlotly({
+        latest_forecast() %>%
+            plot_temperatures() %>%
+            as_plotly()
     })
 }
 
