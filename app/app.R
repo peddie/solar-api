@@ -16,18 +16,20 @@ ui <- fluidPage(
 
     sidebarLayout(
         sidebarPanel(
-            helpText("Power stats"),
-            textOutput("current_time"),
-            textOutput("current_gen"),
-            textOutput("current_load"),
-            textOutput("current_meter")
+            helpText("Weather"),
+            plotlyOutput("forecast_plot"),
+            plotlyOutput("probability_plot"),
+            plotlyOutput("temperature_plot")
         ),
 
         mainPanel(
-            plotlyOutput("plot"),
+            helpText("Solar power info"),
+            textOutput("current_time"),
+            textOutput("current_gen"),
+            textOutput("current_load"),
+            textOutput("current_meter"),
+            plotlyOutput("power_plot"),
             plotlyOutput("past_power_plot"),
-            plotlyOutput("forecast_plot"),
-            plotlyOutput("temperature_plot")
         )
     )
 )
@@ -43,10 +45,16 @@ all_points <- fetch_devices() %>% fetch_all_points()
 as_plotly <- function(ggobject) {
     ggobject %>%
         ggplotly() %>%
+        plotly::config(
+                    displayModeBar = FALSE) %>%
         plotly::layout(
+                    legend = list(
+                        orientation = "h",
+                        xanchor = "center",
+                        x = 0.5,
+                        y = -0.3),
                     yaxis = list(
-                        fixedrange = TRUE,
-                        displaylogo = FALSE))
+                        fixedrange = TRUE))
 }
 
 server <- function(input, output) {
@@ -91,7 +99,7 @@ server <- function(input, output) {
     })
 
     ## https://community.rstudio.com/t/plotly-have-both-geom-line-and-geom-smooth-in-the-legend-and-remove-the-trailing-text-1-at-the-end-of-the-legend-keys/105030
-    output$plot <- renderPlotly({
+    output$power_plot <- renderPlotly({
         latest_data() %>%
             plot_power_compared_to_yesterday() %>%
             as_plotly()
@@ -109,6 +117,11 @@ server <- function(input, output) {
     output$temperature_plot <- renderPlotly({
         latest_forecast() %>%
             plot_temperatures() %>%
+            as_plotly()
+    })
+    output$probability_plot <- renderPlotly({
+        latest_forecast() %>%
+            plot_rain_probabilities() %>%
             as_plotly()
     })
 }

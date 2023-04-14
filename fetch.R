@@ -15,13 +15,12 @@ all_points <- fetch_all_points(devices)
 all_data <- fetch_point(
     all_points$device_type,
     all_points$point_id,
-    lubridate::now() - lubridate::ddays(13),
+    lubridate::now() - lubridate::ddays(22),
     lubridate::now())
 
 named <- label_points(all_data, all_points)
 tabular <-
     named %>% pivot_for_plotting %>% compute_net_load
-tabular %>% plot_power()
 
 ### Cost calculations
 costed <-
@@ -66,4 +65,36 @@ daily_difference <- (fixed_cost - demand_cost) / n_days
 set_user_agent()
 forecast <-
     bom_web_detailed_forecast() %>%
-    tidy_forecast_tables()
+    tidy_forecast_tables() %>%
+    dplyr::mutate(fetch_time = lubridate::round_date(
+                                              lubridate::now(),
+                                              unit = "hour"))
+
+### Data update
+solar_data_filename <- "solar_data.qs"
+past_solar <- qs::qread(solar_data_filename)
+updated_solar_data <-
+    past_solar %>%
+    tibble::add_row(tabular) %>%
+    dplyr::distinct(
+               timestamp,
+               .keep_all = TRUE)
+qs::qsave(
+        updated_solar_data,
+        solar_data_filename)
+
+forecast_data_filename <- "forecast_data.qs"
+past_forecasts <- qs::qread(forecast_data_filename)
+updated_forecast_data <-
+    past_forecasts %>%
+    tibble::add_row(forecast) %>%
+    dplyr::distinct(
+               timestamp,
+               .keep_all = TRUE)
+qs::qsave(
+        updated_forecast_data,
+        forecast_data_filename)
+
+### Plot generation
+
+tabular %>% plot_power()

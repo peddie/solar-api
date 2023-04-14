@@ -138,10 +138,76 @@ plot_rain_forecast <- function(forecast) {
                      title = "BOM rain forecast")
 }
 
+plot_rain_probabilities <- function(forecast) {
+    days <-
+        forecast %>%
+        dplyr::pull(timestamp) %>%
+        lubridate::round_date(unit = "day") %>%
+        unique()
+
+    label_rain_long <- function(rain, thunderstorm) {
+        paste0(
+            dplyr::if_else(
+                       rain == "Heavy",
+                       "Heavy rain",
+                       dplyr::if_else(
+                                  rain == "Yes",
+                                  "Rain",
+                                  "")),
+            dplyr::if_else(
+                       thunderstorm == "Yes",
+                       " + Thunderstorms",
+                       ""))
+    }
+    label_rain <- function(rain, thunderstorm) {
+        paste0(
+            dplyr::if_else(
+                       rain == "Heavy",
+                       "H",
+                       dplyr::if_else(
+                                  rain == "Yes",
+                                  "R",
+                                  "")),
+            dplyr::if_else(
+                       thunderstorm == "Yes",
+                       "T",
+                       ""))
+
+    }
+    with_rain <-
+        forecast %>%
+        dplyr::filter(Rain != "No" | Thunderstorms != "No") %>%
+        dplyr::mutate(rain_label = label_rain(Rain, Thunderstorms),
+                      Precipitation = factor(label_rain_long(Rain, Thunderstorms)))
+    forecast %>%
+        ggplot2::ggplot(
+                     ggplot2::aes(x = timestamp)) +
+        ggplot2::geom_area(
+                     ggplot2::aes(y = rain_probability),
+                     fill = "blue",
+                     alpha = 0.5) +
+        ggplot2::geom_text(
+                     data = with_rain,
+                     ggplot2::aes(y = rain_probability,
+                                  label = rain_label,
+                                  color = Precipitation),
+                     vjust = -2) +
+        ggplot2::scale_x_datetime(
+                     # labels = scales::date_format("%a %b %d %H:%M"),
+                     breaks = days) +
+        # ggplot2::theme(aspect.ratio = 0.2) +
+        ggplot2::coord_cartesian(ylim = c(0, 1), expand = TRUE) +
+        ggplot2::labs(
+                     x = "Time",
+                     y = "Probability",
+                     title = "Forecast probability of any rain",
+                     subtitle = "R = rain, T = thunderstorm, H = heavy rain")
+}
+
 plot_temperatures <- function(forecast) {
     temps <- c(forecast$air_temp_C, forecast$feels_like_temp_C)
-    max_temp <- round(max(temps))
-    min_temp <- round(min(temps))
+    max_temp <- round(max(temps, na.rm = TRUE))
+    min_temp <- round(min(temps, na.rm = TRUE))
 
     calc_extrema <- function(varname) {
         forecast %>%
@@ -170,17 +236,15 @@ plot_temperatures <- function(forecast) {
                                         y = max,
                                         label = max),
                            size = 6,
-                           vjust = -2## ,
-                           ## color = feels_like_colour
-                           ) +
+                           ## color = feels_like_colour,
+                           vjust = -2) +
         ggplot2::geom_text(data = feels_like_extrema,
                             ggplot2::aes(x = min_time,
                                          y = min,
                                          label = min),
                            size = 6,
-                           vjust = 2##,
                            ## color = feels_like_colour
-                           ) +
+                           vjust = 2) +
         ggplot2::scale_y_continuous(breaks = seq(min_temp, max_temp, by = 2)) +
         ggplot2::labs(
                      x = "Time",
