@@ -5,6 +5,7 @@ library(plotly)
 source("api.R", local = TRUE)
 source("constants.R", local = TRUE)
 source("bom.R", local = TRUE)
+source("cost.R", local = TRUE)
 
 options(browser = "x-www-browser")
 options(shiny.host = "192.168.1.157")
@@ -19,7 +20,7 @@ ui <- fluidPage(
             helpText("Weather"),
             plotlyOutput("forecast_plot"),
             plotlyOutput("probability_plot"),
-            plotlyOutput("temperature_plot")
+            plotlyOutput("temperature_plot"),
         ),
 
         mainPanel(
@@ -29,7 +30,16 @@ ui <- fluidPage(
             textOutput("current_load"),
             textOutput("current_meter"),
             plotlyOutput("power_plot"),
+            dateInput(
+                "power_history_date",
+                "Power history window",
+                value = lubridate::today() - lubridate::ddays(7),
+                format = "yyyy-mm-dd",
+                min = "2023-03-23"),
+            textOutput("power_sold"),
             plotlyOutput("past_power_plot"),
+            h2("Power plan analysis"),
+            shiny::dataTableOutput("plans"),
         )
     )
 )
@@ -63,10 +73,9 @@ server <- function(input, output) {
         fetch_point(
             to_fetch$device_type,
             to_fetch$point_id,
-            lubridate::floor_date(
-                           lubridate::now() - lubridate::ddays(7),
-                           unit="day"),
-            lubridate::now()) %>%
+            input$power_history_date,
+            lubridate::now()
+        ) %>%
             label_points(all_points) %>%
             pivot_for_plotting() %>%
             compute_net_load()
@@ -123,6 +132,19 @@ server <- function(input, output) {
         latest_forecast() %>%
             plot_rain_probabilities() %>%
             as_plotly()
+    })
+    output$power_sold <- renderText({
+        latest <- latest_data()
+        mean_sold <-
+            latest %>%
+            compute_sold() %>%
+            dplyr::pull(sold_kWh) %>%
+            mean(na.rm = TRUE)
+        days <- get_days(latest)
+        paste("Mean power export over past", length(days), " days was ", sprintf("%.2f", mean_sold), "kWh / day.")
+    })
+    output$plans <- shiny::renderDataTable({
+        calculate_costs(latest_data())
     })
 }
 

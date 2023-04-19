@@ -140,16 +140,23 @@ compute_net_load <- function(tabular) {
                    `Net Load` = `Meter Active Power` + `Total Active Power`)
 }
 
+to_day <- function(timestamp) {
+    lubridate::as_date(lubridate::floor_date(timestamp, unit = "day"))
+}
+
+get_days <- function(tabular) {
+    tabular %>%
+        dplyr::pull(timestamp) %>%
+        to_day() %>%
+        unique()
+}
+
 plot_power <- function(tabular) {
     color_mappings <-
         c("Meter Usage" = "red",
           "Generation" = "green",
           "Load" = "blue")
-    days <-
-        tabular %>%
-        dplyr::pull(timestamp) %>%
-        lubridate::round_date(unit = "day") %>%
-        unique()
+    days <- get_days(tabular)
     tabular %>%
         ggplot2::ggplot(aes(x = timestamp)) +
         ggplot2::geom_ribbon(
