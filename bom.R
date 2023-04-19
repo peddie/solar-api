@@ -126,11 +126,14 @@ plot_rain_forecast <- function(forecast) {
         ggplot2::geom_area(
                      ggplot2::aes(y = mm_50th_quantile,
                                   fill = "50%")) +
-        ggplot2::scale_x_datetime(
-                     labels = scales::date_format("%a %b %d %H:%M")) +
         ggplot2::scale_fill_manual(values = colors) +
         ggplot2::scale_color_manual(values = colors) +
         ggplot2::coord_cartesian(ylim = c(0, NA), expand = TRUE) +
+        ggplot2::scale_x_datetime(
+                     labels = scales::date_format("%a %H:%M")) +
+        ggplot2::theme(axis.text.x = ggplot2::element_text(
+                                                  angle = 90,
+                                                  vjust = 0.5)) +
         ggplot2::labs(
                      x = "Time",
                      y = "Rain amount [mm]",
@@ -138,13 +141,15 @@ plot_rain_forecast <- function(forecast) {
                      title = "BOM rain forecast")
 }
 
-plot_rain_probabilities <- function(forecast) {
-    days <-
-        forecast %>%
+get_days <- function(forecast) {
+    forecast %>%
         dplyr::pull(timestamp) %>%
         lubridate::round_date(unit = "day") %>%
         unique()
+}
 
+plot_rain_probabilities <- function(forecast) {
+    days <- get_days(forecast)
     label_rain_long <- function(rain, thunderstorm) {
         paste0(
             dplyr::if_else(
@@ -193,8 +198,11 @@ plot_rain_probabilities <- function(forecast) {
                                   color = Precipitation),
                      vjust = -2) +
         ggplot2::scale_x_datetime(
-                     # labels = scales::date_format("%a %b %d %H:%M"),
-                     breaks = days) +
+                     breaks = days,
+                     labels = scales::date_format("%a %b %d")) +
+        ggplot2::theme(axis.text.x = ggplot2::element_text(
+                                                  angle = 90,
+                                                  vjust = 0.5)) +
         # ggplot2::theme(aspect.ratio = 0.2) +
         ggplot2::coord_cartesian(ylim = c(0, 1), expand = TRUE) +
         ggplot2::labs(
@@ -205,6 +213,7 @@ plot_rain_probabilities <- function(forecast) {
 }
 
 plot_temperatures <- function(forecast) {
+    days <- get_days(forecast)
     temps <- c(forecast$air_temp_C, forecast$feels_like_temp_C)
     max_temp <- round(max(temps, na.rm = TRUE))
     min_temp <- round(min(temps, na.rm = TRUE))
@@ -246,6 +255,12 @@ plot_temperatures <- function(forecast) {
                            ## color = feels_like_colour
                            vjust = 2) +
         ggplot2::scale_y_continuous(breaks = seq(min_temp, max_temp, by = 2)) +
+        ggplot2::scale_x_datetime(
+                     breaks = days,
+                     labels = scales::date_format("%a %b %d")) +
+        ggplot2::theme(axis.text.x = ggplot2::element_text(
+                                                  angle = 90,
+                                                  vjust = 0.5)) +
         ggplot2::labs(
                      x = "Time",
                      y = "Temperature [C]",
