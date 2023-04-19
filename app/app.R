@@ -68,22 +68,88 @@ as_plotly <- function(ggobject) {
 }
 
 server <- function(input, output) {
+    global <- shiny::reactiveValues(current_data = NULL)
+
     latest_data <- reactive({
         shiny::invalidateLater(millis = 300 * 1000)
-        fetch_point(
+        ## We don't want to keep fetching days of API data every time
+        ## if the only thing that changed was the 5-minute timer.  So
+        ## we save the current data in the `global` reactive store and
+        ## compute the necessary bounds based on what we already have.
+        start_time <- input$power_history_date
+        end_time <- lubridate::now()
+        isolate(current_data <- global$current_data)
+        if (!is.null(current_data)) {
+            earliest_cached <-
+                current_data %>% dplyr::pull(timestamp) %>% min
+            if (start_time >= earliest_cached) {
+                print("Update of latest time")
+                start_time <-
+                    current_data %>% dplyr::pull(timestamp) %>% max
+            } else {
+                ## input$power_history_date changed, so we assume the
+                ## timer did not trigger.
+                print("Update of earliest time")
+                end_time <- earliest_cached
+            }
+        } else {
+            print("Initial fetch.")
+        }
+        tictoc::tic("iSolarCloud API call:")
+        new_data <- fetch_point(
             to_fetch$device_type,
             to_fetch$point_id,
-            input$power_history_date,
-            lubridate::now()
-        ) %>%
+            start_time,
+            end_time
+        )
+        toc_msg <- function(tic, toc, msg, info) {
+            paste(msg,
+                  "fetched",
+                  nrow(new_data),
+                  "points in",
+                  round(toc - tic, 3),
+                  "seconds")
+        }
+        tictoc::toc(func.toc = toc_msg)
+        tictoc::tic("Formed updated frame:")
+        update <- new_data %>%
             label_points(all_points) %>%
             pivot_for_plotting() %>%
             compute_net_load()
+        merged <- dplyr::bind_rows(
+                              current_data,
+                             update) %>%
+            dplyr::arrange(timestamp)
+        global$current_data <- merged
+        toc_msg <- function(tic, toc, msg, info) {
+            paste(msg,
+                  "formed new frame of",
+                  nrow(merged),
+                  "points in",
+                  round(toc - tic, 3),
+                  "seconds")
+        }
+        tictoc::toc(func.toc = toc_msg)
+        return(merged)
     })
+    historical_data <- reactive({
+        print("Update of historical data.")
+        latest_data() %>%
+            dplyr::filter(
+                       lubridate::date(timestamp) !=
+                       lubridate::date(lubridate::today()) &
+                       lubridate::date(timestamp) >= input$power_history_date)
+    }) %>% shiny::bindCache(
+                      lubridate::date(lubridate::today()),
+                      input$power_history_date)
+    
     latest_forecast <- reactive({
         shiny::invalidateLater(millis = 60 * 60 * 1000)
-        bom_web_detailed_forecast(place_name = "kenmore") %>%
+        tictoc::tic("BOM forecast fetch")
+        latest <- bom_web_detailed_forecast(place_name = "kenmore") %>%
             tidy_forecast_tables()
+        tictoc::toc()
+        return(latest)
     })
     output$current_time <- renderText({
         latest_time <-
@@ -114,7 +180,7 @@ server <- function(input, output) {
             as_plotly()
     })
     output$past_power_plot <- renderPlotly({
-        latest_data() %>%
+        historical_data() %>%
             plot_past_power() %>%
             as_plotly()
     })
@@ -134,17 +200,18 @@ server <- function(input, output) {
             as_plotly()
     })
     output$power_sold <- renderText({
-        latest <- latest_data()
+        print("used historical data.")
+        historical <- historical_data()
         mean_sold <-
-            latest %>%
+            historical %>%
             compute_sold() %>%
             dplyr::pull(sold_kWh) %>%
             mean(na.rm = TRUE)
-        days <- get_days(latest)
+        days <- get_days(historical)
         paste("Mean power export over past", length(days), " days was ", sprintf("%.2f", mean_sold), "kWh / day.")
     })
     output$plans <- shiny::renderDataTable({
-        calculate_costs(latest_data())
+        calculate_costs(historical_data())
     })
 }
 
